@@ -1,7 +1,2 @@
 import React from "react";
-export default function Profile({session}) {
-  return <div className="module-page">
-    <section className="module-heading"><h1>My Profile</h1><p>Your learner information and account details.</p></section>
-    <div className="profile-card"><span>Student ID</span><strong>{session.studentId}</strong><span>Account Type</span><strong>Student</strong></div>
-  </div>;
-}
+export default function Profile({session,student}){const l=student.learner;const e=student.enrollment;const name=[l?.first_name,l?.middle_name,l?.last_name,l?.suffix].filter(Boolean).join(" ");return <div className="module-page"><section className="module-heading"><h1>My Profile</h1><p>Your learner information and account details.</p></section><div className="profile-card"><span>Name</span><strong>{name}</strong><span>LRN</span><strong>{l?.lrn}</strong><span>Email</span><strong>{session.user.email}</strong><span>Grade & Section</span><strong>{e?.section?`Grade ${e.section.grade_level} — ${e.section.name}`:"—"}</strong><span>School Year</span><strong>{e?.school_year?.label||"—"}</strong><span>School</span><strong>{e?.school?.name||"—"}</strong></div></div>}
