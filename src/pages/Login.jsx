@@ -1,0 +1,7 @@
+import React,{useState} from "react";import{Link}from"react-router-dom";import{ArrowRight,GraduationCap}from"lucide-react";
+export default function Login({onSignIn}){const[studentId,setStudentId]=useState("");const[password,setPassword]=useState("");function submit(e){e.preventDefault();if(studentId.trim()&&password)onSignIn(studentId.trim())}return <div className="auth-page">
+ <section className="auth-brand"><img src="/assets/klas-banner.png" alt="KLAS — The One Place for Every Class"/><span className="portal-chip"><GraduationCap size={16}/> Student Portal</span></section>
+ <section className="auth-card"><div><p className="eyebrow">WELCOME BACK</p><h2>Sign in to KLAS</h2><p className="muted">Access your school information from your phone or browser.</p></div>
+ <form onSubmit={submit}><label>Student ID<input value={studentId} onChange={e=>setStudentId(e.target.value)} placeholder="Enter your Student ID" autoComplete="username"/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your password" autoComplete="current-password"/></label><button className="primary" type="submit">Sign In <ArrowRight size={18}/></button></form>
+ <p className="auth-footer">First time using KLAS? <Link to="/activate">Activate your account</Link></p><p className="dev-note">v0.1.2 GUI preview — authentication is local only.</p></section>
+ </div>}
