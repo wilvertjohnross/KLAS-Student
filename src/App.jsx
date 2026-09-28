@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { getSession, saveSession, clearSession } from "./storage";
+import { supabase, loadStudentContext } from "./supabase";
 import Login from "./pages/Login";
 import Activate from "./pages/Activate";
 import Dashboard from "./pages/Dashboard";
@@ -9,38 +9,57 @@ import Profile from "./pages/Profile";
 import Shell from "./components/Shell";
 
 export default function App() {
-  const [session, setSession] = useState(getSession());
+  const [authSession,setAuthSession]=useState(null);
+  const [student,setStudent]=useState(null);
+  const [loading,setLoading]=useState(true);
 
-  function signIn(studentId) {
-    const next = { role: "student", studentId, signedInAt: new Date().toISOString() };
-    saveSession(next);
-    setSession(next);
-  }
-  function signOut() {
-    clearSession();
-    setSession(null);
+  async function refreshStudent(session) {
+    if (!session) { setStudent(null); return; }
+    try { setStudent(await loadStudentContext()); }
+    catch (e) { console.error("KLAS profile load failed",e); setStudent(null); }
   }
 
-  if (!session) {
-    return (
-      <Routes>
-        <Route path="/activate" element={<Activate />} />
-        <Route path="*" element={<Login onSignIn={signIn} />} />
-      </Routes>
-    );
+  useEffect(()=>{
+    let alive=true;
+    supabase.auth.getSession().then(async({data})=>{
+      if(!alive)return;
+      setAuthSession(data.session);
+      await refreshStudent(data.session);
+      if(alive)setLoading(false);
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
+      setAuthSession(session);
+      setTimeout(()=>refreshStudent(session),0);
+    });
+    return()=>{alive=false;subscription.unsubscribe()};
+  },[]);
+
+  async function signOut(){await supabase.auth.signOut();setAuthSession(null);setStudent(null)}
+  if(loading)return <div className="auth-page"><section className="auth-card standalone"><h2>Opening KLAS…</h2></section></div>;
+
+  if(!authSession){
+    return <Routes>
+      <Route path="/activate" element={<Activate onActivated={()=>{}}/>}/>
+      <Route path="*" element={<Login/>}/>
+    </Routes>;
   }
 
-  return (
-    <Shell onSignOut={signOut}>
-      <Routes>
-        <Route path="/" element={<Dashboard session={session} />} />
-        <Route path="/grades" element={<Placeholder title="My Grades" text="Released grades will appear here once KLAS Cloud synchronization is connected." />} />
-        <Route path="/report-card" element={<Placeholder title="My Report Card" text="Your released SF9/report card will be available here." />} />
-        <Route path="/schedule" element={<Placeholder title="Class Schedule" text="Your class schedule will appear here." />} />
-        <Route path="/feedback" element={<Placeholder title="Teacher Feedback" text="Secure student-to-teacher feedback will be added in a later development stage." />} />
-        <Route path="/profile" element={<Profile session={session} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Shell>
-  );
+  if(!student?.account){
+    return <Routes>
+      <Route path="/activate" element={<Activate session={authSession} onActivated={()=>refreshStudent(authSession)}/>}/>
+      <Route path="*" element={<Navigate to="/activate" replace/>}/>
+    </Routes>;
+  }
+
+  return <Shell onSignOut={signOut}>
+    <Routes>
+      <Route path="/" element={<Dashboard session={authSession} student={student}/>} />
+      <Route path="/grades" element={<Placeholder title="My Grades" text="Released grades will appear here once KLAS Cloud grade synchronization is connected."/>}/>
+      <Route path="/report-card" element={<Placeholder title="My Report Card" text="Your released SF9/report card will be available here."/>}/>
+      <Route path="/schedule" element={<Placeholder title="Class Schedule" text="Your class schedule will appear here."/>}/>
+      <Route path="/feedback" element={<Placeholder title="Teacher Feedback" text="Secure student-to-teacher feedback will be added in a later development stage."/>}/>
+      <Route path="/profile" element={<Profile session={authSession} student={student}/>}/>
+      <Route path="*" element={<Navigate to="/" replace/>}/>
+    </Routes>
+  </Shell>;
 }
