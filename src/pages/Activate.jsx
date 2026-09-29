@@ -8,7 +8,7 @@ function learnerName(learner){
 }
 function firstName(learner){return learner?.first_name||"Student"}
 
-export default function Activate({session,onLinked}){
+export default function Activate({session,onLinked,initialSuccess=null}){
   const navigate=useNavigate();
   const[lrn,setLrn]=useState("");
   const[code,setCode]=useState("");
@@ -16,7 +16,7 @@ export default function Activate({session,onLinked}){
   const[confirm,setConfirm]=useState("");
   const[error,setError]=useState("");
   const[busy,setBusy]=useState(false);
-  const[success,setSuccess]=useState(null);
+  const[success,setSuccess]=useState(initialSuccess);
 
   async function finishLinked(){
     const context=await loadStudentContext();
