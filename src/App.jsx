@@ -1,12 +1,14 @@
 import React,{useEffect,useState}from"react";import{Routes,Route,Navigate}from"react-router-dom";import{supabase,loadStudentContext}from"./supabase";import Login from"./pages/Login";import Activate from"./pages/Activate";import ResetPassword from"./pages/ResetPassword";import Dashboard from"./pages/Dashboard";import Placeholder from"./pages/Placeholder";import Profile from"./pages/Profile";import Shell from"./components/Shell";
 
 export default function App(){
- const[authSession,setAuthSession]=useState(null);const[student,setStudent]=useState(null);const[loading,setLoading]=useState(true);
+ const[authSession,setAuthSession]=useState(null);const[student,setStudent]=useState(null);const[activationCelebration,setActivationCelebration]=useState(null);const[loading,setLoading]=useState(true);
  async function refreshStudent(session){if(!session){setStudent(null);return null}try{const context=await loadStudentContext();setStudent(context);return context}catch(e){console.error("KLAS profile load failed",e);setStudent(null);return null}}
  useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;setAuthSession(data.session);await refreshStudent(data.session);if(alive)setLoading(false)});const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{setAuthSession(session);setTimeout(()=>refreshStudent(session),0)});return()=>{alive=false;subscription.unsubscribe()}},[]);
- async function signOut(){await supabase.auth.signOut();setAuthSession(null);setStudent(null)}
+ async function signOut(){await supabase.auth.signOut();setAuthSession(null);setStudent(null);setActivationCelebration(null)}
+ function handleLinked(context){setActivationCelebration(context);setStudent(null);setTimeout(()=>{setStudent(context);setActivationCelebration(null)},1500)}
  if(loading)return <div className="auth-page"><section className="auth-card standalone"><h2>Opening KLAS…</h2></section></div>;
+ if(activationCelebration)return <Activate session={authSession} initialSuccess={activationCelebration}/>;
  if(!authSession)return <Routes><Route path="/activate" element={<Activate/>}/><Route path="/reset-password" element={<ResetPassword/>}/><Route path="*" element={<Login/>}/></Routes>;
- if(!student?.account)return <Routes><Route path="/activate" element={<Activate session={authSession} onLinked={setStudent}/>}/><Route path="*" element={<Navigate to="/activate" replace/>}/></Routes>;
+ if(!student?.account)return <Routes><Route path="/activate" element={<Activate session={authSession} onLinked={handleLinked}/>}/><Route path="*" element={<Navigate to="/activate" replace/>}/></Routes>;
  return <Shell onSignOut={signOut}><Routes><Route path="/" element={<Dashboard session={authSession} student={student}/>} /><Route path="/activate" element={<Navigate to="/" replace/>}/><Route path="/grades" element={<Placeholder title="My Grades" text="Released grades will appear here once KLAS Cloud grade synchronization is connected."/>}/><Route path="/report-card" element={<Placeholder title="My Report Card" text="Your released SF9/report card will be available here."/>}/><Route path="/schedule" element={<Placeholder title="Class Schedule" text="Your class schedule will appear here."/>}/><Route path="/feedback" element={<Placeholder title="Teacher Feedback" text="Secure student-to-teacher feedback will be added in a later development stage."/>}/><Route path="/profile" element={<Profile session={authSession} student={student}/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></Shell>
 }
