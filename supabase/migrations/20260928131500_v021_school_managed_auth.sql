@@ -1,0 +1,5 @@
+-- KLAS Student v0.2.1 school-managed auth
+alter table public.student_accounts add column if not exists login_identifier text unique, add column if not exists password_reset_required boolean not null default false;
+comment on column public.student_accounts.login_identifier is 'Server-managed internal login identifier. Student UI uses LRN; this value is never a learner-facing credential.';
+create or replace function private.current_student_lrn() returns text language sql stable security definer set search_path=public,private,pg_temp as $$ select l.lrn from public.student_accounts sa join public.learners l on l.id=sa.learner_id where sa.user_id=auth.uid() and sa.status='active'::public.account_status limit 1; $$;
+revoke all on function private.current_student_lrn() from public,anon,authenticated;
